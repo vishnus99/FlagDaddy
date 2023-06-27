@@ -12,7 +12,7 @@ intents = discord.Intents.default()
 intents.members = True
 client = discord.Client(intents=intents)
 
-bot = commands.Bot(intents = intents, command_prefix='!')
+bot = commands.Bot(command_prefix='!')
 
 @bot.event
 async def on_message(message):
