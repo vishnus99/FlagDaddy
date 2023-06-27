@@ -1,1 +1,1 @@
-worker: python flagdaddy.py
+worker: python src/main.py
