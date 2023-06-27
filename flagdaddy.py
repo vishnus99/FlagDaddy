@@ -75,10 +75,10 @@ compliments = [
 "You have a nurturing nature. You always make others feel cared for and loved.",
 "You have an entrepreneurial mindset. Your ambition and drive set you up for success!",
 "You have a strong sense of social responsibility. Your dedication to making a difference is inspiring!",
-"You have a magnetic charisma. People are naturally drawn to your presence!"
-"Damn girl, you thiccer than a bowl of oatmeal"
-"You? Would."
-"How you fit all that in them pants"
+"You have a magnetic charisma. People are naturally drawn to your presence!",
+"Damn girl, you thiccer than a bowl of oatmeal",
+"You? Would.",
+"How you fit all that in them pants",
 "You smell good, I like that."
 ""
 ]
