@@ -87,8 +87,7 @@ compliments = [
 async def loveme(ctx):
     compliment = random.choice(compliments)
     await ctx.send(compliment)
-    await bot.process_commands(ctx)
-    
+
 def get_flag_emoji(nationality):
     flags = {
         'USA': '🇺🇸',
