@@ -49,7 +49,7 @@ async def on_ready():
 
 @bot.command()
 async def loveme(ctx):
-    compliment = random.choice(compliments)
+    compliment = choice(compliments)
     await ctx.send(compliment)
 #####################################
 
