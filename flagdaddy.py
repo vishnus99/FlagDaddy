@@ -83,10 +83,15 @@ compliments = [
 ""
 ]
 
-@bot.command
+@bot.event
+async def on_ready():
+    print(f"Bot connected as {bot.user.name}")
+
+@bot.command()
 async def loveme(ctx):
     compliment = random.choice(compliments)
     await ctx.send(compliment)
+
 
 def get_flag_emoji(nationality):
     flags = {
