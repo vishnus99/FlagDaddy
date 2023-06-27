@@ -10,7 +10,6 @@ TOKEN = os.getenv('DISCORD_TOKEN')
 GUILD = os.getenv('DISCORD_GUILD')
 intents = discord.Intents.default()
 intents.members = True
-client = discord.Client(intents=intents)
 
 bot = commands.Bot(intents = intents, command_prefix='!')
 
