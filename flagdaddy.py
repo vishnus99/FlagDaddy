@@ -10,6 +10,7 @@ TOKEN = os.getenv('DISCORD_TOKEN')
 GUILD = os.getenv('DISCORD_GUILD')
 intents = discord.Intents.default()
 intents.members = True
+intents.message_content = True
 
 bot = commands.Bot(intents = intents, command_prefix='!')
 
@@ -42,9 +43,6 @@ async def on_message(message):
         await message.add_reaction(flag_emoji)
 
     await bot.process_commands(message)
-
-    
-
 
 @bot.event
 async def on_ready():
