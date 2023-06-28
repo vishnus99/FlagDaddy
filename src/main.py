@@ -19,8 +19,8 @@ bot = commands.Bot(intents = intents, command_prefix='!')
 
 # JSON IMPORT
 #####################################
-membersJSON = 0
-complimentsJSON = 0
+membersJSON = []
+complimentsJSON = []
 with open("json/members.json") as f:
   membersJSON = json.load(f)
 with open("json/compliments.json") as f:
@@ -50,7 +50,7 @@ async def on_ready():
 
 @bot.command()
 async def loveme(ctx):
-    compliment = choice(compliments)
+    compliment = choice(complimentsJSON)
     await ctx.send(compliment)
 #####################################
 
