@@ -1,5 +1,6 @@
 import discord
 import json
+from helper_functions import get_emojis_from_member
 from discord.ext import commands
 from os import getenv
 from dotenv import load_dotenv
@@ -33,10 +34,10 @@ async def on_message(message):
     if message.author == bot.user:
       return
 
-    if message.author.id not in [member.['id'] for member in membersJSON]:
+    if message.author.id not in [member['id'] for member in membersJSON]:
       return
 
-    emojis = filter(lambda member: member['id'] == message.author.id, membersJSON)
+    emojis = get_emojis_from_member(membersJSON, message.author.id)
 
     for e in emojis:
       await message.add_reaction(e)
