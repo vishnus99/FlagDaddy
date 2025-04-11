@@ -1,5 +1,6 @@
 discord.py
 python-dotenv
+numpy>=1.24.0
 --find-links https://download.pytorch.org/whl/torch_stable.html
 torch==2.2.0+cpu  # CPU-only version
 torchvision==0.17.0+cpu  # CPU-only version, needed for ResNet
