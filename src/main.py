@@ -10,6 +10,9 @@ from PIL import Image
 import torch
 import requests
 import io
+import boto3
+import os
+from botocore.exceptions import ClientError
 
 # BOT SETUP VARS
 #####################################
@@ -24,6 +27,33 @@ bot = commands.Bot(intents = intents, command_prefix='!')
 
 #MODEL SETUP
 #####################################
+def download_from_s3():
+    bucket_name = getenv('AWS_BUCKET_NAME')
+    model_key = 'car_classifier.pth'  # The path/name of file in S3
+    local_path = 'car_classifier/car_classifier.pth'
+    
+    try:
+        # Ensure directory exists
+        os.makedirs(os.path.dirname(local_path), exist_ok=True)
+        
+        # Initialize S3 client
+        s3 = boto3.client(
+            's3',
+            aws_access_key_id=getenv('AWS_ACCESS_KEY_ID'),
+            aws_secret_access_key=getenv('AWS_SECRET_ACCESS_KEY')
+        )
+        
+        # Download file
+        s3.download_file(bucket_name, model_key, local_path)
+        print("Model downloaded successfully")
+    except ClientError as e:
+        print(f"Error downloading model: {e}")
+        raise
+
+# Download model if not exists
+if not os.path.exists('car_classifier/car_classifier.pth'):
+    download_from_s3()
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = CarClassifier(num_classes=196, train_resnet=False)
 model.load_state_dict(torch.load('car_classifier/car_classifier.pth', map_location=device))
