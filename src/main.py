@@ -5,7 +5,7 @@ from discord.ext import commands
 from os import getenv
 from dotenv import load_dotenv
 from random import choice
-from car_classifier.model import CarClassifier, predict_image
+from car_classifier.model import CarClassifier, predict_image, transform
 from PIL import Image
 import torch
 import requests
