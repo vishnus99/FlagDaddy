@@ -1,3 +1,10 @@
+import os
+import sys
+os.environ["NUMPY_EXPERIMENTAL_ARRAY_FUNCTION"] = "0"
+import numpy as np
+import torch
+import torch.nn as nn
+import torchvision.transforms as transforms
 import discord
 import json
 from helper_functions import get_emojis_from_member
@@ -7,12 +14,12 @@ from dotenv import load_dotenv
 from random import choice
 from car_classifier.model import CarClassifier, predict_image, transform
 from PIL import Image
-import torch
 import requests
 import io
 import boto3
 import os
 from botocore.exceptions import ClientError
+
 
 # BOT SETUP VARS
 #####################################
