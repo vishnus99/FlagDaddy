@@ -13,3 +13,4 @@ dependencies:
   - pillow
   - boto3
   - requests
+  - flask
