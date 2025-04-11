@@ -6,3 +6,5 @@ torch==2.2.0+cpu  # CPU-only version
 torchvision==0.17.0+cpu  # CPU-only version, needed for ResNet
 Pillow  # Needed for image processing
 boto3  # Needed for S3
+Flask
+gunicorn
