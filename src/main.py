@@ -19,6 +19,8 @@ import io
 import boto3
 import os
 from botocore.exceptions import ClientError
+import logging
+import traceback
 
 
 # BOT SETUP VARS
@@ -128,6 +130,66 @@ async def on_message(message):
                     await message.channel.send(f"Sorry, I couldn't process that image: {str(e)}")
 
     await bot.process_commands(message)
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger('discord_bot')
+
+async def process_car_image(ctx):
+    try:
+        if len(ctx.message.attachments) == 0:
+            await ctx.send("Please attach an image!")
+            return
+
+        attachment = ctx.message.attachments[0]
+        logger.info(f"Processing image: {attachment.filename}")
+        logger.info(f"Image size: {attachment.size} bytes")
+        
+        # Create temp directory if it doesn't exist
+        os.makedirs('temp', exist_ok=True)
+        temp_path = os.path.join('temp', 'temp_image.jpg')
+        
+        try:
+            # Download image
+            logger.info("Downloading image...")
+            await attachment.save(temp_path)
+            logger.info(f"Image saved to {temp_path}")
+            
+            # Check if file exists and is not empty
+            if not os.path.exists(temp_path):
+                raise FileNotFoundError("Temp file was not created")
+            
+            file_size = os.path.getsize(temp_path)
+            logger.info(f"Saved file size: {file_size} bytes")
+            
+            if file_size == 0:
+                raise ValueError("Downloaded file is empty")
+
+            # Process image
+            logger.info("Running prediction...")
+            result = predict_image(model, temp_path, device)
+            logger.info(f"Prediction result: {result}")
+            
+            await ctx.send(f"This car appears to be a {result}")
+
+        except Exception as e:
+            logger.error(f"Error during processing: {str(e)}")
+            logger.error(traceback.format_exc())
+            await ctx.send(f"Sorry, I couldn't process that image. Error: {str(e)}")
+            
+        finally:
+            # Cleanup
+            try:
+                if os.path.exists(temp_path):
+                    os.remove(temp_path)
+                    logger.info("Cleaned up temporary file")
+            except Exception as e:
+                logger.error(f"Error during cleanup: {str(e)}")
+
+    except Exception as e:
+        logger.error(f"Outer error: {str(e)}")
+        logger.error(traceback.format_exc())
+        await ctx.send("Sorry, something went wrong while processing your request.")
 #####################################
 
 bot.run(TOKEN)
