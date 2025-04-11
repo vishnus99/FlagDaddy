@@ -16,3 +16,7 @@ requests==2.31.0
 urllib3==2.0.3
 yarg==0.1.9
 yarl==1.9.2
+torch
+torchvision
+boto3
+Pillow
