@@ -101,7 +101,13 @@ async def on_message(message):
 
 @bot.event
 async def on_ready():
-    print(f"Bot connected as {bot.user.name}")
+    logger.info(f'Bot is ready! Logged in as {bot.user.name}')
+
+@bot.event
+async def on_command_error(ctx, error):
+    logger.error(f'Command error: {str(error)}')
+    logger.error(traceback.format_exc())
+    await ctx.send(f"An error occurred: {str(error)}")
 
 @bot.command()
 async def loveme(ctx):
@@ -130,6 +136,31 @@ async def on_message(message):
                     await message.channel.send(f"Sorry, I couldn't process that image: {str(e)}")
 
     await bot.process_commands(message)
+
+@bot.command()
+async def identify(ctx):
+    logger.info(f"Command received from {ctx.author}")
+    
+    try:
+        if not ctx.message.attachments:
+            logger.info("No attachment found in message")
+            await ctx.send("Please attach an image!")
+            return
+            
+        attachment = ctx.message.attachments[0]
+        logger.info(f"Attachment received: {attachment.filename} ({attachment.size} bytes)")
+        
+        if not attachment.filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+            logger.info(f"Invalid file type: {attachment.filename}")
+            await ctx.send("Please upload a PNG or JPG image!")
+            return
+            
+        await process_car_image(ctx)
+        
+    except Exception as e:
+        logger.error(f"Error in identify command: {str(e)}")
+        logger.error(traceback.format_exc())
+        await ctx.send(f"Sorry, an error occurred: {str(e)}")
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
