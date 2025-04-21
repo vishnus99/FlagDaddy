@@ -86,17 +86,29 @@ with open('car_classifier/class_dict.json', 'r') as f:
 #####################################
 @bot.event
 async def on_message(message):
+    # Ignore messages from the bot itself
     if message.author == bot.user:
-      return
+        return
 
-    if message.author.id not in [member['id'] for member in membersJSON]:
-      return
+    print(f"Message received from {message.author}")
+    logger.info(f"Message received from {message.author}")
 
-    emojis = get_emojis_from_member(membersJSON, message.author.id)
+    # Check if message has an image attachment
+    if message.attachments:
+        print(f"Found attachment: {message.attachments[0].filename}")
+        logger.info(f"Found attachment: {message.attachments[0].filename}")
+        
+        # Check if it's an image
+        if any(attachment.filename.lower().endswith(('.png', '.jpg', '.jpeg')) 
+               for attachment in message.attachments):
+            print("Processing image attachment")
+            logger.info("Processing image attachment")
+            await process_car_image(message)
+        else:
+            print("Attachment is not an image")
+            logger.info("Attachment is not an image")
 
-    for e in emojis:
-      await message.add_reaction(e)
-
+    # Make sure to process commands as well if you have any
     await bot.process_commands(message)
 
 @bot.event
@@ -181,12 +193,8 @@ logger = logging.getLogger('car_classifier_bot')
 print("Logger configured")
 logger.info("Logger configured")
 
-async def process_car_image(ctx):
-    if len(ctx.message.attachments) == 0:
-        await ctx.send("Please attach an image!")
-        return
-
-    attachment = ctx.message.attachments[0]
+async def process_car_image(message):
+    attachment = message.attachments[0]
     logger.info(f"Processing image: {attachment.filename}")
     logger.info(f"Image size: {attachment.size} bytes")
     
@@ -215,16 +223,16 @@ async def process_car_image(ctx):
         result = predict_image(model, temp_path, device)
         logger.info(f"Prediction result: {result}")
         
-        await ctx.send(f"This car appears to be a {result}")
+        await message.channel.send(f"This car appears to be a {result}")
 
     except (FileNotFoundError, ValueError) as e:
         logger.error(f"File error: {str(e)}")
-        await ctx.send(f"Sorry, I couldn't process that image: {str(e)}")
+        await message.channel.send(f"Sorry, I couldn't process that image: {str(e)}")
     
     except Exception as e:
         logger.error(f"Unexpected error: {str(e)}")
         logger.error(traceback.format_exc())
-        await ctx.send("Sorry, something went wrong while processing your request.")
+        await message.channel.send("Sorry, something went wrong while processing your request.")
     
     finally:
         # Cleanup
