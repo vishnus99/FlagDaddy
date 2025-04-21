@@ -1,9 +1,11 @@
 import torch
+import numpy as np
 import torch.nn as nn
 from torchvision import models
 import torchvision.transforms as transforms
 from PIL import Image
-
+import logging
+import os
 # Model definition
 class CarClassifier(torch.nn.Module):
     def __init__(self, num_classes: int, train_resnet: bool = False):
@@ -42,13 +44,47 @@ transform = transforms.Compose([
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
 
-def predict_image(model, image, device, class_dict):
-    """
-    Predict car class from PIL Image
-    """
-    model.eval()
-    with torch.no_grad():
-        image_tensor = transform(image).unsqueeze(0).to(device)
-        output = model(image_tensor)
-        _, predicted = torch.max(output.data, 1)
-        return class_dict[predicted.item()]
+def predict_image(model, image_path, device, class_dict):
+    logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s %(levelname)s: %(message)s',
+    force=True
+    )
+    logger = logging.getLogger('car_classifier_bot')
+    logger.info(f"Predict image called with path: {image_path}")
+    
+    try:
+        # Type checking
+        if not isinstance(image_path, str):
+            raise TypeError(f"Expected string path, got {type(image_path)}")
+        
+        if not isinstance(model, torch.nn.Module):
+            raise TypeError(f"Expected torch.nn.Module, got {type(model)}")
+            
+        # Verify file exists
+        if not os.path.exists(image_path):
+            raise FileNotFoundError(f"Image file not found: {image_path}")
+            
+        # Load and verify image
+        try:
+            image = Image.open(image_path).convert('RGB')
+        except Exception as e:
+            raise ValueError(f"Failed to open image: {str(e)}")
+            
+        # Transform image
+        try:
+            image_tensor = transform(image).unsqueeze(0).to(device)
+        except Exception as e:
+            raise ValueError(f"Failed to transform image: {str(e)}")
+            
+        model.eval()
+        with torch.no_grad():
+            try:
+                image_tensor = transform(image).unsqueeze(0).to(device)
+                output = model(image_tensor)
+                _, predicted = torch.max(output.data, 1)
+                return class_dict[predicted.item()]
+            except Exception as e:
+                raise ValueError(f"Failed to make prediction: {str(e)}")
+    except Exception as e:
+        raise ValueError(f"Error in predict_image: {str(e)}")
