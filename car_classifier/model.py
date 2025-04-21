@@ -72,8 +72,14 @@ def predict_image(model, image_path, device, class_dict):
         with torch.no_grad():
             try:
                 output = model(image_tensor)
-                _, predicted = torch.max(output.data, 1)
+                print(f"Raw output shape: {output.shape}")
+                print(f"Raw output values: {output}")
+
+                max_values, predicted = torch.max(output.data, 1)
                 result = predicted.item()
+                print(f"Confidence scores: {max_values}")
+                print(f"Predicted class indices: {predicted}")
+            
                 logger.info(f"Prediction successful: {result}")
                 return result
             except Exception as e:
