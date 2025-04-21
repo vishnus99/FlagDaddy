@@ -197,7 +197,7 @@ async def process_car_image(message):
     
     # Create temp directory if it doesn't exist
     os.makedirs('temp', exist_ok=True)
-    temp_path = os.path.join('temp', 'temp_image.jpg')
+    temp_path = os.path.join('temp', attachment.filename)
     
     try:
         # Download image
