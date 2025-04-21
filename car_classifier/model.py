@@ -7,6 +7,8 @@ from PIL import Image
 import logging
 import os
 import traceback
+import json
+import torch.nn.functional as F
 
 # Model definition
 class CarClassifier(torch.nn.Module):
@@ -46,7 +48,7 @@ transform = transforms.Compose([
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
 
-def predict_image(model, image_path, device, class_dict):
+def predict_image(model, image_path, device):
     logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s %(levelname)s: %(message)s',
@@ -56,38 +58,41 @@ def predict_image(model, image_path, device, class_dict):
     logger.info(f"Predict image called with path: {image_path}")
     
     try:
-        # Load image
-        logger.info("Loading image...")
+        # Load class dictionary
+        with open('class_dict.json', 'r') as f:
+            class_dict = json.load(f)
+        print(f"Number of classes in dictionary: {len(class_dict)}")
+        
+        # Load and process image
         image = Image.open(image_path).convert('RGB')
-        logger.info("Image loaded successfully")
-
-        # Transform image
-        logger.info("Transforming image...")
         image_tensor = transform(image).unsqueeze(0).to(device)
-        logger.info("Image transformed successfully")
-
-        # Make prediction
-        logger.info("Running model prediction...")
+        
         model.eval()
         with torch.no_grad():
-            try:
-                output = model(image_tensor)
-                print(f"Raw output shape: {output.shape}")
-                print(f"Raw output values: {output}")
-
-                max_values, predicted = torch.max(output.data, 1)
-                result = predicted.item()
-                print(f"Confidence scores: {max_values}")
-                print(f"Predicted class indices: {predicted}")
+            # Get predictions
+            output = model(image_tensor)
+            print(f"Model output shape: {output.shape}")  # Should be [1, 196]
             
-                logger.info(f"Prediction successful: {result}")
-                return result
-            except Exception as e:
-                logger.error(f"Model prediction failed: {str(e)}")
-                logger.error(traceback.format_exc())
-                raise ValueError(f"Model prediction failed: {str(e)}")
-
+            # Get probabilities
+            probabilities = F.softmax(output, dim=1)
+            
+            # Get top 3 predictions for debugging
+            top_probs, top_indices = torch.topk(probabilities, 3)
+            
+            print("\nTop 3 predictions:")
+            for i in range(3):
+                idx = top_indices[0][i].item()
+                prob = top_probs[0][i].item()
+                class_name = class_dict.get(str(idx), f"Unknown class {idx}")
+                print(f"  {i+1}. {class_name}: {prob:.4f}")
+            
+            # Get the top prediction
+            pred_idx = top_indices[0][0].item()
+            class_name = class_dict.get(str(pred_idx), f"Unknown class {pred_idx}")
+            
+            return class_name
+            
     except Exception as e:
-        logger.error(f"Error in predict_image: {str(e)}")
+        logger.error(f"Prediction error: {str(e)}")
         logger.error(traceback.format_exc())
-        raise ValueError(f"Error in predict_image: {str(e)}")
+        raise
