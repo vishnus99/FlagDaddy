@@ -101,10 +101,12 @@ async def on_message(message):
 
 @bot.event
 async def on_ready():
+    print(f'Bot is ready! Logged in as {bot.user.name}')
     logger.info(f'Bot is ready! Logged in as {bot.user.name}')
 
 @bot.event
 async def on_command_error(ctx, error):
+    print(f'Command error: {str(error)}')
     logger.error(f'Command error: {str(error)}')
     logger.error(traceback.format_exc())
     await ctx.send(f"An error occurred: {str(error)}")
@@ -139,18 +141,22 @@ async def on_message(message):
 
 @bot.command()
 async def identify(ctx):
+    print(f"Command received from {ctx.author}")
     logger.info(f"Command received from {ctx.author}")
     
     try:
         if not ctx.message.attachments:
+            print("No attachment found in message")
             logger.info("No attachment found in message")
             await ctx.send("Please attach an image!")
             return
             
         attachment = ctx.message.attachments[0]
+        print(f"Attachment received: {attachment.filename}")
         logger.info(f"Attachment received: {attachment.filename} ({attachment.size} bytes)")
         
         if not attachment.filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+            print(f"Invalid file type: {attachment.filename}")
             logger.info(f"Invalid file type: {attachment.filename}")
             await ctx.send("Please upload a PNG or JPG image!")
             return
@@ -158,13 +164,22 @@ async def identify(ctx):
         await process_car_image(ctx)
         
     except Exception as e:
+        print(f"Error in identify command: {str(e)}")
         logger.error(f"Error in identify command: {str(e)}")
         logger.error(traceback.format_exc())
         await ctx.send(f"Sorry, an error occurred: {str(e)}")
 
 # Set up logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger('discord_bot')
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s %(levelname)s: %(message)s',
+    force=True  # Force configuration
+)
+logger = logging.getLogger('car_classifier_bot')
+
+# Add both print and log
+print("Logger configured")
+logger.info("Logger configured")
 
 async def process_car_image(ctx):
     if len(ctx.message.attachments) == 0:
