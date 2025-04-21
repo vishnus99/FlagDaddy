@@ -48,7 +48,7 @@ transform = transforms.Compose([
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
 
-def predict_image(model, image_path, device):
+def predict_image(model, image_path, device, class_dict):
     logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s %(levelname)s: %(message)s',
@@ -59,8 +59,6 @@ def predict_image(model, image_path, device):
     
     try:
         # Load class dictionary
-        with open('class_dict.json', 'r') as f:
-            class_dict = json.load(f)
         print(f"Number of classes in dictionary: {len(class_dict)}")
         
         # Load and process image
