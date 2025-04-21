@@ -84,32 +84,14 @@ with open('car_classifier/class_dict.json', 'r') as f:
 
 # BOT FUNCTIONS
 #####################################
-@bot.event
-async def on_message(message):
-    # Ignore messages from the bot itself
-    if message.author == bot.user:
-        return
+print("Bot is starting up...")
 
-    print(f"Message received from {message.author}")
-    logger.info(f"Message received from {message.author}")
-
-    # Check if message has an image attachment
-    if message.attachments:
-        print(f"Found attachment: {message.attachments[0].filename}")
-        logger.info(f"Found attachment: {message.attachments[0].filename}")
-        
-        # Check if it's an image
-        if any(attachment.filename.lower().endswith(('.png', '.jpg', '.jpeg')) 
-               for attachment in message.attachments):
-            print("Processing image attachment")
-            logger.info("Processing image attachment")
-            await process_car_image(message)
-        else:
-            print("Attachment is not an image")
-            logger.info("Attachment is not an image")
-
-    # Make sure to process commands as well if you have any
-    await bot.process_commands(message)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s %(levelname)s: %(message)s',
+    force=True
+)
+logger = logging.getLogger('car_classifier_bot')
 
 @bot.event
 async def on_ready():
@@ -130,25 +112,52 @@ async def loveme(ctx):
 
 @bot.event
 async def on_message(message):
-    if message.author == bot.user:
-        return
+    try:
+        # Ignore messages from the bot itself
+        if message.author == bot.user:
+            return
 
-    if message.attachments:
-        for attachment in message.attachments:
-            if any(attachment.filename.lower().endswith(ext) for ext in ['.png', '.jpg', '.jpeg']):
-                try:
-                    # Download and process image
-                    response = requests.get(attachment.url)
-                    image = Image.open(io.BytesIO(response.content)).convert('RGB')
-                    
-                    # Get prediction
-                    predicted_class = predict_image(model, image, device, class_dict)
-                    
-                    # Send response
-                    await message.channel.send(f"This appears to be a {predicted_class}")
-                except Exception as e:
-                    await message.channel.send(f"Sorry, I couldn't process that image: {str(e)}")
+        print(f"Raw message received: {message}")
+        logger.info(f"Raw message received: {message}")
 
+        # Immediately log attachment info
+        if message.attachments:
+            for idx, attachment in enumerate(message.attachments):
+                print(f"Attachment {idx} details:")
+                print(f"  Filename: {attachment.filename}")
+                print(f"  Size: {attachment.size}")
+                print(f"  URL: {attachment.url}")
+                print(f"  Content type: {attachment.content_type}")
+                
+                logger.info(f"Attachment {idx} details:")
+                logger.info(f"  Filename: {attachment.filename}")
+                logger.info(f"  Size: {attachment.size}")
+                logger.info(f"  URL: {attachment.url}")
+                logger.info(f"  Content type: {attachment.content_type}")
+
+            # Try to process the first image attachment
+            try:
+                if message.attachments[0].filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+                    print("Starting image processing...")
+                    logger.info("Starting image processing...")
+                    await process_car_image(message)
+                else:
+                    print(f"Invalid file type: {message.attachments[0].filename}")
+                    logger.info(f"Invalid file type: {message.attachments[0].filename}")
+                    await message.channel.send("Please upload a PNG or JPG image!")
+            except Exception as e:
+                print(f"Error in attachment processing: {str(e)}")
+                logger.error(f"Error in attachment processing: {str(e)}")
+                logger.error(traceback.format_exc())
+                await message.channel.send(f"Error processing attachment: {str(e)}")
+
+    except Exception as e:
+        print(f"Error in message handling: {str(e)}")
+        logger.error(f"Error in message handling: {str(e)}")
+        logger.error(traceback.format_exc())
+        await message.channel.send(f"An error occurred: {str(e)}")
+
+    # Make sure to process commands as well
     await bot.process_commands(message)
 
 @bot.command()
@@ -180,18 +189,6 @@ async def identify(ctx):
         logger.error(f"Error in identify command: {str(e)}")
         logger.error(traceback.format_exc())
         await ctx.send(f"Sorry, an error occurred: {str(e)}")
-
-# Set up logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s %(levelname)s: %(message)s',
-    force=True  # Force configuration
-)
-logger = logging.getLogger('car_classifier_bot')
-
-# Add both print and log
-print("Logger configured")
-logger.info("Logger configured")
 
 async def process_car_image(message):
     attachment = message.attachments[0]
