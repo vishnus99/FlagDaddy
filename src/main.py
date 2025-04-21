@@ -217,7 +217,7 @@ async def process_car_image(message):
 
         # Process image
         logger.info("Running prediction...")
-        result = predict_image(model, temp_path, device, class_dict)
+        result = predict_image(model, temp_path, device)
         logger.info(f"Prediction result: {result}")
         
         await message.channel.send(f"This car appears to be a {result}")
