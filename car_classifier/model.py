@@ -22,10 +22,9 @@ class CarClassifier(nn.Module):
             resnet.layer2,
             resnet.layer3,
             resnet.layer4,
-            nn.AdaptiveAvgPool2d((1, 1))  # Add adaptive pooling layer
+            nn.AdaptiveAvgPool2d((1, 1))
         )
         
-        # Create output layers
         self.output = nn.Sequential(
             nn.Linear(2048, 1024),
             nn.BatchNorm1d(1024),
@@ -39,19 +38,23 @@ class CarClassifier(nn.Module):
         
     def forward(self, x):
         x = self.feature_extractor(x)
-        x = torch.flatten(x, 1)  # flatten after pooling
+        x = torch.flatten(x, 1)
         x = self.output(x)
         return x
 
-# Define the transformation
+# Define the transformation to match training
 transform = transforms.Compose([
-    transforms.Resize((224, 224)),
+    transforms.Resize(256),
+    transforms.CenterCrop(224),
     transforms.ToTensor(),
-    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    transforms.Normalize(
+        mean=[0.485, 0.456, 0.406],
+        std=[0.229, 0.224, 0.225]
+    )
 ])
 
 def load_model(device):
-    # Initialize model with correct architecture
+    # Initialize model
     model = CarClassifier(num_classes=196)
     
     # Load the trained weights
@@ -59,9 +62,23 @@ def load_model(device):
     print(f"Loading model from: {model_path}")
     
     try:
+        # Load state dict and check its contents
         state_dict = torch.load(model_path, map_location=device)
+        print("State dict keys:", state_dict.keys())
+        
+        # Check a few parameter shapes
+        print("\nSome parameter shapes:")
+        for name, param in model.named_parameters():
+            print(f"{name}: {param.shape}")
+            
         model.load_state_dict(state_dict)
-        print("Model weights loaded successfully")
+        print("\nModel weights loaded successfully")
+        
+        # Verify some layer weights after loading
+        print("\nVerifying weights after loading:")
+        for name, param in model.named_parameters():
+            print(f"{name} - Mean: {param.mean().item():.4f}, Std: {param.std().item():.4f}")
+            
     except Exception as e:
         print(f"Error loading model weights: {e}")
         raise
@@ -70,37 +87,38 @@ def load_model(device):
     model.eval()
     return model
 
-# Create transform pipeline
-transform = transforms.Compose([
-    transforms.Resize(256),
-    transforms.CenterCrop(224),
-    transforms.ToTensor(),
-    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-])
-
 def predict_image(model, image_path, device, class_dict):
     try:
-        # Verify model is in eval mode
-        if model.training:
-            model.eval()
-        
         # Load and process image
         image = Image.open(image_path).convert('RGB')
+        print(f"\nInput image size: {image.size}")
+        
+        # Transform and check tensor
         image_tensor = transform(image)
+        print(f"Transformed tensor shape: {image_tensor.shape}")
+        print(f"Tensor range: [{image_tensor.min():.2f}, {image_tensor.max():.2f}]")
+        
+        # Add batch dimension and move to device
         image_tensor = image_tensor.unsqueeze(0).to(device)
         
         with torch.no_grad():
-            # Get predictions
-            output = model(image_tensor)
+            # Get model predictions
+            features = model.feature_extractor(image_tensor)
+            print(f"Feature shape: {features.shape}")
+            
+            features_flat = torch.flatten(features, 1)
+            print(f"Flattened feature shape: {features_flat.shape}")
+            
+            output = model.output(features_flat)
+            print(f"Output shape: {output.shape}")
+            print(f"Raw output range: [{output.min().item():.2f}, {output.max().item():.2f}]")
+            
+            # Get probabilities
             probabilities = torch.nn.functional.softmax(output, dim=1)
+            print(f"Probability sum: {probabilities.sum().item():.4f}")
             
-            # Get top 3 predictions
+            # Get predictions
             top_probs, top_indices = torch.topk(probabilities, 3)
-            
-            # Load class dictionary
-            dict_path = os.path.join(os.path.dirname(__file__), 'class_dict.json')
-            with open(dict_path, 'r') as f:
-                class_dict = json.load(f)
             
             print("\nTop 3 predictions:")
             for i in range(3):
