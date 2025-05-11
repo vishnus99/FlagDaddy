@@ -7,8 +7,8 @@ from PIL import Image
 import logging
 import os
 import traceback
-import json
 import torch.nn.functional as F
+import json
 
 # Model definition
 class CarClassifier(torch.nn.Module):
@@ -48,34 +48,44 @@ transform = transforms.Compose([
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
 
-def predict_image(model, image_path, device, class_dict):
-    logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s %(levelname)s: %(message)s',
-    force=True
-    )
-    logger = logging.getLogger('car_classifier_bot')
-    logger.info(f"Predict image called with path: {image_path}")
-    
+def predict_image(model, image_path, device):
     try:
-        # Load class dictionary
-        print(f"Number of classes in dictionary: {len(class_dict)}")
+        # 1. Verify model state
+        print(f"\nModel device: {next(model.parameters()).device}")
+        print(f"Input device: {device}")
+        print(f"Model training mode: {model.training}")
         
-        # Load and process image
+        # 2. Load and verify image
         image = Image.open(image_path).convert('RGB')
-        image_tensor = transform(image).unsqueeze(0).to(device)
+        print(f"\nImage size: {image.size}")
+        print(f"Image mode: {image.mode}")
         
-        model.eval()
+        # 3. Check transformation
+        image_tensor = transform(image)
+        print(f"\nTransformed tensor shape: {image_tensor.shape}")
+        print(f"Tensor value range: ({image_tensor.min():.2f}, {image_tensor.max():.2f})")
+        
+        # 4. Prepare batch
+        image_tensor = image_tensor.unsqueeze(0).to(device)
+        print(f"Input batch shape: {image_tensor.shape}")
+        
+        # 5. Get predictions
+        model.eval()  # Ensure model is in eval mode
         with torch.no_grad():
-            # Get predictions
             output = model(image_tensor)
-            print(f"Model output shape: {output.shape}")  # Should be [1, 196]
+            print(f"\nRaw output shape: {output.shape}")
+            print(f"Output value range: ({output.min():.2f}, {output.max():.2f})")
             
             # Get probabilities
             probabilities = F.softmax(output, dim=1)
+            print(f"Probability sum: {probabilities.sum().item():.2f}")  # Should be close to 1.0
             
-            # Get top 3 predictions for debugging
+            # Get top 3 predictions
             top_probs, top_indices = torch.topk(probabilities, 3)
+            
+            # Load class dictionary
+            with open('class_dict.json', 'r') as f:
+                class_dict = json.load(f)
             
             print("\nTop 3 predictions:")
             for i in range(3):
@@ -84,13 +94,8 @@ def predict_image(model, image_path, device, class_dict):
                 class_name = class_dict.get(str(idx), f"Unknown class {idx}")
                 print(f"  {i+1}. {class_name}: {prob:.4f}")
             
-            # Get the top prediction
-            pred_idx = top_indices[0][0].item()
-            class_name = class_dict.get(str(pred_idx), f"Unknown class {pred_idx}")
-            
-            return class_name
+            return class_dict.get(str(top_indices[0][0].item()), "Unknown")
             
     except Exception as e:
-        logger.error(f"Prediction error: {str(e)}")
-        logger.error(traceback.format_exc())
+        print(f"Error in predict_image: {str(e)}")
         raise
