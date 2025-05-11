@@ -62,23 +62,39 @@ def load_model(device):
     print(f"Loading model from: {model_path}")
     
     try:
-        # Load state dict and check its contents
+        # Load state dict
         state_dict = torch.load(model_path, map_location=device)
-        print("State dict keys:", state_dict.keys())
         
-        # Check a few parameter shapes
-        print("\nSome parameter shapes:")
+        # Print model architecture before loading weights
+        print("\nModel architecture:")
+        for name, module in model.named_children():
+            print(f"{name}:")
+            print(module)
+        
+        # Print some layer statistics before loading
+        print("\nBefore loading weights:")
         for name, param in model.named_parameters():
-            print(f"{name}: {param.shape}")
-            
+            if param.requires_grad:
+                print(f"{name}: mean={param.mean():.4f}, std={param.std():.4f}")
+        
+        # Load weights
         model.load_state_dict(state_dict)
-        print("\nModel weights loaded successfully")
         
-        # Verify some layer weights after loading
-        print("\nVerifying weights after loading:")
+        # Print layer statistics after loading
+        print("\nAfter loading weights:")
         for name, param in model.named_parameters():
-            print(f"{name} - Mean: {param.mean().item():.4f}, Std: {param.std().item():.4f}")
-            
+            if param.requires_grad:
+                print(f"{name}: mean={param.mean():.4f}, std={param.std():.4f}")
+                
+        # Verify feature extractor weights
+        first_conv = model.feature_extractor[0].weight
+        print(f"\nFirst conv layer stats:")
+        print(f"Shape: {first_conv.shape}")
+        print(f"Mean: {first_conv.mean():.4f}")
+        print(f"Std: {first_conv.std():.4f}")
+        print(f"Min: {first_conv.min():.4f}")
+        print(f"Max: {first_conv.max():.4f}")
+        
     except Exception as e:
         print(f"Error loading model weights: {e}")
         raise
