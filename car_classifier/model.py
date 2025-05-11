@@ -21,24 +21,25 @@ class CarClassifier(nn.Module):
             resnet.layer1,
             resnet.layer2,
             resnet.layer3,
-            resnet.layer4
+            resnet.layer4,
+            nn.AdaptiveAvgPool2d((1, 1))  # Add adaptive pooling layer
         )
         
-        # Create output layers with correct sizes from saved model
+        # Create output layers
         self.output = nn.Sequential(
-            nn.Linear(2048, 1024),  # Changed from 512 to 1024
-            nn.BatchNorm1d(1024),   # Changed from 512 to 1024
+            nn.Linear(2048, 1024),
+            nn.BatchNorm1d(1024),
             nn.ReLU(),
-            nn.Linear(1024, 512),   # Changed from 256 to 512
-            nn.BatchNorm1d(512),    # Changed from 256 to 512
+            nn.Linear(1024, 512),
+            nn.BatchNorm1d(512),
             nn.ReLU(),
             nn.Dropout(0.5),
-            nn.Linear(512, num_classes)  # Changed input from 256 to 512
+            nn.Linear(512, num_classes)
         )
         
     def forward(self, x):
         x = self.feature_extractor(x)
-        x = torch.flatten(x, 1)
+        x = torch.flatten(x, 1)  # flatten after pooling
         x = self.output(x)
         return x
 
