@@ -89,45 +89,59 @@ def load_model(device):
 
 def predict_image(model, image_path, device, class_dict):
     try:
+        # Verify model is in eval mode
+        if model.training:
+            model.eval()
+        print(f"\nModel training mode: {model.training}")
+        
         # Load and process image
         image = Image.open(image_path).convert('RGB')
-        print(f"\nInput image size: {image.size}")
+        print(f"Input image size: {image.size}")
         
-        # Transform and check tensor
+        # Transform and verify tensor
         image_tensor = transform(image)
         print(f"Transformed tensor shape: {image_tensor.shape}")
         print(f"Tensor range: [{image_tensor.min():.2f}, {image_tensor.max():.2f}]")
         
-        # Add batch dimension and move to device
         image_tensor = image_tensor.unsqueeze(0).to(device)
         
         with torch.no_grad():
-            # Get model predictions
+            # Get features
             features = model.feature_extractor(image_tensor)
             print(f"Feature shape: {features.shape}")
+            print(f"Feature stats - Mean: {features.mean():.4f}, Std: {features.std():.4f}")
             
+            # Flatten and get output
             features_flat = torch.flatten(features, 1)
-            print(f"Flattened feature shape: {features_flat.shape}")
-            
             output = model.output(features_flat)
-            print(f"Output shape: {output.shape}")
-            print(f"Raw output range: [{output.min().item():.2f}, {output.max().item():.2f}]")
+            print(f"Raw output shape: {output.shape}")
+            print(f"Raw output stats - Mean: {output.mean():.4f}, Std: {output.std():.4f}")
             
-            # Get probabilities
-            probabilities = torch.nn.functional.softmax(output, dim=1)
-            print(f"Probability sum: {probabilities.sum().item():.4f}")
+            # Apply temperature scaling to soften the predictions
+            temperature = 2.0
+            scaled_output = output / temperature
             
-            # Get predictions
+            # Get probabilities with softmax
+            probabilities = torch.nn.functional.softmax(scaled_output, dim=1)
+            print(f"Probability sum: {probabilities.sum().item():.4f}")  # Should be close to 1.0
+            
+            # Get top 3 predictions
             top_probs, top_indices = torch.topk(probabilities, 3)
             
             print("\nTop 3 predictions:")
+            predictions = []
             for i in range(3):
                 idx = top_indices[0][i].item()
                 prob = top_probs[0][i].item()
                 class_name = class_dict.get(str(idx), f"Unknown class {idx}")
                 print(f"  {i+1}. {class_name}: {prob:.4f}")
+                predictions.append((class_name, prob))
             
-            return class_dict.get(str(top_indices[0][0].item()), "Unknown")
+            # Return highest confidence prediction if above threshold
+            if predictions[0][1] > 0.1:  # 10% confidence threshold
+                return predictions[0][0]
+            else:
+                return "Confidence too low for reliable prediction"
             
     except Exception as e:
         print(f"Error in predict_image: {str(e)}")
