@@ -12,7 +12,7 @@ from discord.ext import commands
 from os import getenv
 from dotenv import load_dotenv
 from random import choice
-from car_classifier.model import CarClassifier, predict_image, transform
+from car_classifier.model import CarClassifier, predict_image, transform, load_model
 from PIL import Image
 import requests
 import io
@@ -63,10 +63,9 @@ def download_from_s3():
 if not os.path.exists('car_classifier/car_classifier.pth'):
     download_from_s3()
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = CarClassifier(num_classes=196, train_resnet=False)
-model.load_state_dict(torch.load('car_classifier/car_classifier.pth', map_location=device))
-model.to(device)
+# Initialize device and model
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+model = load_model(device)
 #####################################
 
 # JSON IMPORT

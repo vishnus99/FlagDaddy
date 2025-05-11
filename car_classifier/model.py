@@ -1,44 +1,39 @@
 import torch
-import numpy as np
 import torch.nn as nn
-from torchvision import models
+import torchvision.models as models
 import torchvision.transforms as transforms
 from PIL import Image
-import logging
-import os
-import traceback
-import torch.nn.functional as F
 import json
+import os
 
-# Model definition
-class CarClassifier(torch.nn.Module):
-    def __init__(self, num_classes: int, train_resnet: bool = False):
-        super().__init__()
-        model = models.resnet50(pretrained=True)
-        
-        self.feature_extractor = torch.nn.Sequential(
-            *list(model.children())[:-2],
-            nn.AdaptiveAvgPool2d((1, 1))
-        )
+# Define the transformation
+transform = transforms.Compose([
+    transforms.Resize((224, 224)),
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+])
 
-        if not train_resnet:
-            for param in self.feature_extractor.parameters():
-                param.requires_grad = False
-
-        self.output = nn.Sequential(
-            nn.Linear(2048,1024),
-            nn.BatchNorm1d(1024),
-            nn.ReLU(),
-            nn.Linear(1024, 512),
-            nn.BatchNorm1d(512),
-            nn.ReLU(),
-            nn.Dropout(p=0.5),
-            nn.Linear(512, num_classes)
-        )
-
-    def forward(self, x):
-        features = self.feature_extractor(x).view(x.shape[0], -1)
-        return self.output(features)
+def load_model(device):
+    # Initialize the model architecture (ResNet50)
+    model = models.resnet50(pretrained=False)
+    num_classes = 196  # Number of car classes
+    model.fc = nn.Linear(model.fc.in_features, num_classes)
+    
+    # Load the trained weights
+    model_path = os.path.join(os.path.dirname(__file__), 'car_classifier.pth')
+    print(f"Loading model from: {model_path}")
+    
+    try:
+        state_dict = torch.load(model_path, map_location=device)
+        model.load_state_dict(state_dict)
+        print("Model weights loaded successfully")
+    except Exception as e:
+        print(f"Error loading model weights: {e}")
+        raise
+    
+    model = model.to(device)
+    model.eval()  # Set to evaluation mode
+    return model
 
 # Create transform pipeline
 transform = transforms.Compose([
@@ -50,35 +45,20 @@ transform = transforms.Compose([
 
 def predict_image(model, image_path, device, class_dict):
     try:
-        # 1. Verify model state
-        print(f"\nModel device: {next(model.parameters()).device}")
-        print(f"Input device: {device}")
-        print(f"Model training mode: {model.training}")
+        # Verify model is in eval mode
+        if model.training:
+            model.eval()
+        print(f"\nModel training mode: {model.training}")
         
-        # 2. Load and verify image
+        # Load and process image
         image = Image.open(image_path).convert('RGB')
-        print(f"\nImage size: {image.size}")
-        print(f"Image mode: {image.mode}")
-        
-        # 3. Check transformation
         image_tensor = transform(image)
-        print(f"\nTransformed tensor shape: {image_tensor.shape}")
-        print(f"Tensor value range: ({image_tensor.min():.2f}, {image_tensor.max():.2f})")
-        
-        # 4. Prepare batch
         image_tensor = image_tensor.unsqueeze(0).to(device)
-        print(f"Input batch shape: {image_tensor.shape}")
         
-        # 5. Get predictions
-        model.eval()  # Ensure model is in eval mode
         with torch.no_grad():
+            # Get predictions
             output = model(image_tensor)
-            print(f"\nRaw output shape: {output.shape}")
-            print(f"Output value range: ({output.min():.2f}, {output.max():.2f})")
-            
-            # Get probabilities
-            probabilities = F.softmax(output, dim=1)
-            print(f"Probability sum: {probabilities.sum().item():.2f}")  # Should be close to 1.0
+            probabilities = torch.nn.functional.softmax(output, dim=1)
             
             # Get top 3 predictions
             top_probs, top_indices = torch.topk(probabilities, 3)
