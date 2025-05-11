@@ -48,7 +48,7 @@ transform = transforms.Compose([
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
 
-def predict_image(model, image_path, device):
+def predict_image(model, image_path, device, class_dict):
     try:
         # 1. Verify model state
         print(f"\nModel device: {next(model.parameters()).device}")
@@ -82,10 +82,6 @@ def predict_image(model, image_path, device):
             
             # Get top 3 predictions
             top_probs, top_indices = torch.topk(probabilities, 3)
-            
-            # Load class dictionary
-            with open('class_dict.json', 'r') as f:
-                class_dict = json.load(f)
             
             print("\nTop 3 predictions:")
             for i in range(3):
