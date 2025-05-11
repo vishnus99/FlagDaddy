@@ -12,7 +12,7 @@ from discord.ext import commands
 from os import getenv
 from dotenv import load_dotenv
 from random import choice
-from car_classifier.model import CarClassifier, predict_image, transform, load_model
+from car_classifier.model import predict_image,load_model
 from PIL import Image
 import requests
 import io
