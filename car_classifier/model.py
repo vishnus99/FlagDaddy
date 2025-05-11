@@ -24,16 +24,16 @@ class CarClassifier(nn.Module):
             resnet.layer4
         )
         
-        # Create output layers
+        # Create output layers with correct sizes from saved model
         self.output = nn.Sequential(
-            nn.Linear(2048, 512),
-            nn.BatchNorm1d(512),
+            nn.Linear(2048, 1024),  # Changed from 512 to 1024
+            nn.BatchNorm1d(1024),   # Changed from 512 to 1024
             nn.ReLU(),
-            nn.Linear(512, 256),
-            nn.BatchNorm1d(256),
+            nn.Linear(1024, 512),   # Changed from 256 to 512
+            nn.BatchNorm1d(512),    # Changed from 256 to 512
             nn.ReLU(),
             nn.Dropout(0.5),
-            nn.Linear(256, num_classes)
+            nn.Linear(512, num_classes)  # Changed input from 256 to 512
         )
         
     def forward(self, x):
