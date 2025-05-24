@@ -21,7 +21,8 @@ import os
 from botocore.exceptions import ClientError
 import logging
 import traceback
-
+from clip import clip
+import aiohttp
 
 # BOT SETUP VARS
 #####################################
@@ -32,6 +33,12 @@ intents = discord.Intents.default()
 intents.members = True
 intents.message_content = True
 bot = commands.Bot(intents = intents, command_prefix='!')
+#####################################
+
+# CLIP SETUP
+#####################################
+device = "cuda" if torch.cuda.is_available() else "mps"
+model, preprocess = clip.load("ViT-B/32", device=device)
 #####################################
 
 #MODEL SETUP
@@ -79,6 +86,11 @@ with open("json/compliments.json") as f:
 
 with open('car_classifier/class_dict.json', 'r') as f:
   class_dict = json.load(f)
+  car_classes = [' '.join(class_dict[i].split()[:-1]) for i in range(len(class_dict))]
+
+text_descriptions = [f"a photo of a {car_class}" for car_class in car_classes]
+text_tokens = clip.tokenize(text_descriptions).to(device)
+
 #####################################
 
 # BOT FUNCTIONS
@@ -108,7 +120,7 @@ async def on_command_error(ctx, error):
 async def loveme(ctx):
     compliment = choice(complimentsJSON)
     await ctx.send(compliment)
-
+'''
 @bot.event
 async def on_message(message):
     try:
@@ -238,6 +250,66 @@ async def process_car_image(message):
                 logger.info("Cleaned up temporary file")
             except Exception as e:
                 logger.error(f"Cleanup error: {str(e)}")
+'''
+async def classify_image(image):
+    # Preprocess image
+    image_input = preprocess(image).unsqueeze(0).to(device)
+    
+    # Get predictions
+    with torch.no_grad():
+        image_features = model.encode_image(image_input)
+        text_features = model.encode_text(text_tokens)
+        
+        # Normalize features
+        image_features /= image_features.norm(dim=-1, keepdim=True)
+        text_features /= text_features.norm(dim=-1, keepdim=True)
+        
+        # Calculate similarity
+        similarity = (100.0 * image_features @ text_features.T).softmax(dim=-1)
+        
+    return similarity[0]
+
+@bot.command(name='classify')
+async def classify(ctx):
+    # Check if an image was attached
+    if not ctx.message.attachments:
+        await ctx.send("Please attach an image to classify!")
+        return
+
+    # Get the first attachment
+    attachment = ctx.message.attachments[0]
+    
+    # Check if it's an image
+    if not any(attachment.filename.lower().endswith(ext) for ext in ['.png', '.jpg', '.jpeg']):
+        await ctx.send("Please upload an image file!")
+        return
+
+    try:
+        # Download the image
+        async with aiohttp.ClientSession() as session:
+            async with session.get(attachment.url) as resp:
+                if resp.status != 200:
+                    await ctx.send("Failed to download the image!")
+                    return
+                image_data = await resp.read()
+                image = Image.open(io.BytesIO(image_data))
+
+        # Get predictions
+        probabilities = await classify_image(image)
+        
+        # Get top 5 predictions
+        top_5_probs, top_5_indices = torch.topk(probabilities, 5)
+        
+        # Create response message
+        response = "**Car Classification Results:**\n"
+        for prob, idx in zip(top_5_probs.cpu().numpy(), top_5_indices.cpu().numpy()):
+            response += f"• {car_classes[idx]}: {prob:.2%}\n"
+        
+        await ctx.send(response)
+
+    except Exception as e:
+        await ctx.send(f"An error occurred: {str(e)}")
+
 #####################################
 
 bot.run(TOKEN)
