@@ -1,13 +1,9 @@
-torch
+--find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+torch==2.1.0+cpu
+torchvision==0.16.0+cpu
 Pillow
 discord.py
-python-dotenv
-#numpy<2.00
-#--find-links https://download.pytorch.org/whl/torch_stable.html
-#torch==2.2.0+cpu  # CPU-only version
-#torchvision==0.17.0+cpu  # CPU-only version, needed for ResNet
-Pillow  # Needed for image processing
-boto3  # Needed for S3
-Flask
-gunicorn
+ftfy
+regex
+tqdm
 git+https://github.com/openai/CLIP.git
