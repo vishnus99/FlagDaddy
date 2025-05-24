@@ -1,11 +1,13 @@
 import torch
-import torch.nn as nn
+'''import torch.nn as nn
 import torchvision.models as models
-import torchvision.transforms as transforms
+import torchvision.transforms as transforms'''
 from PIL import Image
 import json
 import os
+import clip
 
+'''
 class CarClassifier(nn.Module):
     def __init__(self, num_classes=196):
         super(CarClassifier, self).__init__()
@@ -52,8 +54,15 @@ transform = transforms.Compose([
         std=[0.229, 0.224, 0.225]
     )
 ])
+'''
 
 def load_model(device):
+    print("Loading CLIP model...")
+    # Load the smallest CLIP model variant
+    model, preprocess = clip.load("ViT-B/32", device=device, jit=True)
+    print("CLIP model loaded")
+    return model, preprocess
+    '''
     # Initialize model
     model = CarClassifier(num_classes=196)
     
@@ -102,8 +111,55 @@ def load_model(device):
     model = model.to(device)
     model.eval()
     return model
+    '''
 
 def predict_image(model, image_path, device, class_dict):
+    try:
+        # Load and preprocess image
+        image = preprocess(Image.open(image_path)).unsqueeze(0).to(device)
+        
+        # Load class names
+        with open(os.path.join(os.path.dirname(__file__), 'class_dict.json'), 'r') as f:
+            class_dict = json.load(f)
+        
+        # Create text descriptions
+        text_inputs = torch.cat([clip.tokenize(f"a photo of a {desc}") for desc in class_dict.values()]).to(device)
+        
+        # Get predictions in smaller batches to save memory
+        with torch.no_grad():
+            # Get image features
+            image_features = model.encode_image(image)
+            
+            # Process text in batches
+            batch_size = 32
+            text_probs = []
+            for i in range(0, len(text_inputs), batch_size):
+                batch = text_inputs[i:i + batch_size]
+                text_features = model.encode_text(batch)
+                text_probs.append(text_features)
+            
+            text_features = torch.cat(text_probs)
+            
+            # Normalize features
+            image_features /= image_features.norm(dim=-1, keepdim=True)
+            text_features /= text_features.norm(dim=-1, keepdim=True)
+
+            # Calculate similarity
+            similarity = (100.0 * image_features @ text_features.T).softmax(dim=-1)
+            
+            # Get top predictions
+            values, indices = similarity[0].topk(3)
+            
+            print("\nTop predictions:")
+            for value, index in zip(values, indices):
+                print(f"{class_dict[str(index.item())]}: {value.item():.2f}%")
+                
+            return class_dict[str(indices[0].item())]
+            
+    except Exception as e:
+        print(f"Error in predict_image: {str(e)}")
+        raise
+    '''
     try:
         # Load and process image
         image = Image.open(image_path).convert('RGB')
@@ -157,3 +213,4 @@ def predict_image(model, image_path, device, class_dict):
     except Exception as e:
         print(f"Error in predict_image: {str(e)}")
         raise
+    '''

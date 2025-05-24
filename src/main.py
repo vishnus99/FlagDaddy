@@ -71,8 +71,8 @@ if not os.path.exists('car_classifier/car_classifier.pth'):
     download_from_s3()
 
 # Initialize device and model
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-model = load_model(device)
+device = torch.device('cuda' if torch.cuda.is_available() else 'mps')
+model, preprocess = load_model(device)
 #####################################
 
 # JSON IMPORT
@@ -120,7 +120,7 @@ async def on_command_error(ctx, error):
 async def loveme(ctx):
     compliment = choice(complimentsJSON)
     await ctx.send(compliment)
-'''
+
 @bot.event
 async def on_message(message):
     try:
@@ -228,7 +228,7 @@ async def process_car_image(message):
 
         # Process image
         logger.info("Running prediction...")
-        result = predict_image(model, temp_path, device, class_dict)
+        result = predict_image(model, preprocess, temp_path, device, class_dict)
         logger.info(f"Prediction result: {result}")
         
         await message.channel.send(f"This car appears to be a {result}")
@@ -250,7 +250,7 @@ async def process_car_image(message):
                 logger.info("Cleaned up temporary file")
             except Exception as e:
                 logger.error(f"Cleanup error: {str(e)}")
-'''
+
 async def classify_image(image):
     # Preprocess image
     image_input = preprocess(image).unsqueeze(0).to(device)
