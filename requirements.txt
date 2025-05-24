@@ -8,3 +8,4 @@ Pillow  # Needed for image processing
 boto3  # Needed for S3
 Flask
 gunicorn
+git+https://github.com/openai/CLIP.git
