@@ -1,2 +1,5 @@
 run:
-	python3 src/main.py
+	modal serve modal_deploy.py
+
+deploy:
+	modal deploy modal_deploy.py
