@@ -1,5 +1,7 @@
-# FlagDaddy
+# Car Classifing Discord Bot
 
-Discord bot that reacts to user messages using the flag of their nationality.
+Discord bot that predicts the label of a given car image using CLIP classification.
+Hosted on Modal.
 
-COPYRIGHT Vishnu Santosh-Menon, Grool Kim &copy;
+
+
